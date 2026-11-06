@@ -1,0 +1,52 @@
+{
+  "phase": "baseline",
+  "timestamp": "2026-11-06T17:01:37.042215+00:00",
+  "mds": [
+    "https://172.31.22.6:8443",
+    "https://172.31.34.173:8443",
+    "https://172.31.10.22:8443"
+  ],
+  "checks": {
+    "unknown_ca_rejected": true,
+    "trusted_tls_accepted": true,
+    "incorrect_password_rejected": true,
+    "rf1": true,
+    "large_file_partition_replication_integrity": true,
+    "rf3_and_snapshot": true,
+    "second_writer_rejected": true,
+    "data_and_internal_unauthorized_rejected": true,
+    "cross_user_access_denied": true,
+    "two_condition_benchmark": true
+  },
+  "leader": "https://172.31.34.173:8443",
+  "large_put_s": 3.099672537999936,
+  "large_file": {
+    "size": 16777236,
+    "sha256": "c574fc22903d83367ba55623914d6bceffd407af241d20d001e3ec58edd1bf2e",
+    "blocks": 17,
+    "replica_endpoints": [
+      "https://172.31.10.22:9443",
+      "https://172.31.10.22:9444",
+      "https://172.31.22.6:9443",
+      "https://172.31.34.173:9443"
+    ]
+  },
+  "benchmark": [
+    {
+      "bytes": 1048576,
+      "repetitions": 3,
+      "put_median_s": 0.2855847609999955,
+      "get_median_s": 0.04109035999999833,
+      "put_mib_s": 3.501587397375225,
+      "get_mib_s": 24.336608391847644
+    },
+    {
+      "bytes": 8388608,
+      "repetitions": 3,
+      "put_median_s": 1.3646457330000885,
+      "get_median_s": 0.15295482599992738,
+      "put_mib_s": 5.862327347342009,
+      "get_mib_s": 52.303024423719705
+    }
+  ]
+}

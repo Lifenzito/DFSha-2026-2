@@ -50,7 +50,30 @@ python tests\performance\benchmark.py `
 
 Para AWS se recomienda repetir con 1, 4, 8 y 16 clientes, registrar mediana y p95, y separar tiempo de carga, commit, lectura y reparación.
 
-## Pruebas Docker pendientes
+## Validación ampliada del 6 de noviembre
+
+En Windows pasaron 9 pruebas en 40.87 segundos (`evidence/pytest-expanded.xml`). Se añadieron TLS con CA válida y rechazo de CA desconocida, contraseña incorrecta, RF1 de borrado, snapshot anterior tras commit, carga interrumpida sin publicación, corrupción con lectura alternativa, escritura con una réplica desconectada y escritores lanzados simultáneamente durante cinco rondas. Un segundo escritor no puede adquirir un lease ya vigente.
+
+El workflow de GitHub Actions ejecutó con éxito los jobs Python y Docker en el commit `720e373a5e330d75b1aec7e8701d3f7117523506`. Docker Compose levantó siete servicios con TLS y validó un archivo de 16 MiB más 20 bytes en tres bloques de tamaño predeterminado 8 MiB. Evidencias originales: https://github.com/Lifenzito/DFSha-2026-2/actions/runs/42257511498
+
+## Resultados AWS Academy
+
+Se usaron tres VMs t3.micro en zonas us-east-1a, us-east-1b y us-east-1c. Docker usa la red del host y puertos privados; el tráfico entre máquinas no es loopback. Bloques de 1 MiB, R=3, W=2, lease de 300 segundos, TLS y discos gp3 cifrados.
+
+Archivo: 16777236 bytes, 17 bloques. SHA-256 original y recuperado: `c574fc22903d83367ba55623914d6bceffd407af241d20d001e3ec58edd1bf2e`.
+
+| Condición AWS | Repeticiones | Put mediana | Put MiB/s | Get mediana | Get MiB/s |
+| --- | --- | --- | --- | --- | --- |
+| 1 MiB | 3 | 0.285585 s | 3.502 | 0.041090 s | 24.337 |
+| 8 MiB | 3 | 1.364646 s | 5.862 | 0.152955 s | 52.303 |
+
+Las cifras no son comparables directamente con loopback ni con Docker en un solo host: cambian hardware, tamaño de bloque, TLS y red. Son una línea base de laboratorio, sin p95 ni saturación con muchos usuarios.
+
+Las fases `baseline`, `degraded`, `recovered`, `failover`, `no-quorum` y `concurrency` se ejecutan con `scripts/verify_deployment.py`. Los JSON en `evidence/aws/` conservan cada resultado real. Se comprobó recuperación del hash durante la caída de dn-1, escritura con una réplica desconectada, restauración de tres réplicas, relevo del líder con un commit nuevo y rechazo al quedar un único MDS.
+
+Las fases iniciales y de fallos usaron los módulos de servicio del commit 720e373a5e330d75b1aec7e8701d3f7117523506. Después se aplicó la corrección de adquisición simultánea de lease del commit fb58c0f18bc80804ba54d3db4153a9027b1e6ca1 y se ejecutó concurrency. Los hashes recogidos al final corresponden a esta última versión y coinciden entre las tres máquinas y el repositorio. El workflow de esa versión también pasó Python y Docker: https://github.com/Lifenzito/DFSha-2026-2/actions/runs/42258924930
+
+## Comandos de fallos para repetir
 
 En un equipo con Docker se deben ejecutar y conservar:
 

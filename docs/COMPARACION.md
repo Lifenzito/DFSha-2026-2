@@ -7,7 +7,7 @@ Los dos diseños parten de la Opción 1 y son compatibles en su estructura princ
 | Decisión | Propuesta de Santiago | Propuesta de Lifeng | Decisión grupal implementada |
 | --- | --- | --- | --- |
 | Plano de control | 3 o 5 MDS con Raft | 3 MDS con Raft | 3 MDS con Raft mínimo verificable |
-| Plano de datos | Cliente a DataNode y cadena DN a DN | Cliente a gateway y fan out paralelo | Cadena S2S para escritura y reparación paralela |
+| Plano de datos | Cliente a DataNode y cadena DN a DN | Cliente a gateway y fan out paralelo | Cadena S2S para escritura y reparación S2S directa |
 | Tamaño de bloque | 8 MiB configurable | 8 MiB | 8 MiB por defecto y 64 KiB en pruebas rápidas |
 | Replicación | R 3 y mínimo 2 | R 3 y W 2 | R 3 y commit con 2 réplicas verificadas |
 | Publicación | Commit único después de validar bloques | Manifiesto atómico ACTIVE | Entrada de log y manifiesto visible después del commit |
@@ -17,7 +17,7 @@ Los dos diseños parten de la Opción 1 y son compatibles en su estructura princ
 | Cifrado en tránsito | TLS y mTLS | TLS y mTLS | TLS para todos los servicios y HMAC interno en el prototipo |
 | Contraseñas | Argon2id | Argon2id | scrypt con sal por usuario en el prototipo |
 | Cifrado en reposo | AES 256 GCM por bloque | AES 256 GCM | AES 256 GCM con AAD block id y generación |
-| Recuperación | Pipeline reconstruido y CopyBlock | Reparación S2S automática | Lectura alternativa y reparación paralela hacia un cuarto DN |
+| Recuperación | Pipeline reconstruido y CopyBlock | Reparación S2S automática | Lectura alternativa y reparación S2S directa hacia un cuarto DN |
 | Métricas | Plan amplio con Prometheus | Plan de cinco repeticiones | Pytest reproducible y benchmark CSV; Prometheus queda como extensión |
 
 ## Registro de decisiones
@@ -28,7 +28,7 @@ Se mantiene la arquitectura asignada. El cliente nunca contiene direcciones fija
 
 ### ADR 2 Escritura en cadena
 
-El cliente envía cada bloque una sola vez al primer DataNode. Cada nodo persiste, verifica y reenvía al siguiente. Esto conserva el ancho de banda de subida del cliente y produce una evidencia S2S fácil de observar. La reparación usa copias paralelas porque no depende del orden original de la cadena.
+El cliente envía cada bloque una sola vez al primer DataNode. Cada nodo persiste, verifica y reenvía al siguiente. Esto conserva el ancho de banda de subida del cliente y produce una evidencia S2S fácil de observar. La reparación usa copias directas porque no depende del orden original de la cadena.
 
 ### ADR 3 Metadatos por mayoría
 
@@ -40,7 +40,7 @@ Cada actualización crea bloques nuevos y un manifiesto nuevo. Se acepta amplifi
 
 ### ADR 5 TLS más secreto interno
 
-Los contenedores usan TLS con una CA de desarrollo. Las rutas internas también requieren un secreto HMAC. mTLS no se implementó porque el prototipo utiliza un solo puerto por servicio; se registra como limitación sin afirmar una garantía no demostrada.
+Los contenedores usan TLS con una CA de desarrollo. Las rutas internas también requieren un secreto HMAC. mTLS quedó fuera del alcance implementado. TLS con HMAC compartido no ofrece identidad criptográfica individual por nodo; se registra como limitación.
 
 ### ADR 6 scrypt para contraseñas
 

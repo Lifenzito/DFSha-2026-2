@@ -6,9 +6,9 @@ Integrantes: Lifeng Chen y Santiago Lopez Angel
 
 ## Resumen
 
-El equipo implementó DFSha como un sistema de archivos distribuido de Opción 1. Tres Metadata Servers coordinan el namespace, los leases y las versiones mediante una implementación mínima de Raft. Cuatro DataNodes almacenan bloques inmutables cifrados. El cliente obtiene ubicaciones desde el MDS, divide cada archivo y envía cada bloque una sola vez al primer nodo de una cadena S2S. La publicación requiere dos réplicas verificadas por bloque y un commit de metadatos confirmado por mayoría.
+Se implementó DFSha como un sistema de archivos distribuido de Opción 1. Tres Metadata Servers coordinan el namespace, los leases y las versiones mediante una implementación mínima de Raft. Cuatro DataNodes almacenan bloques inmutables cifrados. El cliente obtiene ubicaciones desde el MDS, divide cada archivo y envía cada bloque una sola vez al primer nodo de una cadena S2S. La publicación requiere dos réplicas verificadas por bloque y un commit de metadatos confirmado por mayoría. La base y su validación se prepararon con asistencia de Codex; los integrantes deben revisar y defender las decisiones y registrar su participación real.
 
-La implementación cubre RF1, RF2 y la semántica declarada de RF3. Las pruebas locales ejecutaron servicios en procesos separados y comprobaron partición, réplica, integridad, acceso concurrente, aislamiento de usuarios, reparación de una réplica y relevo del líder. Pasaron siete pruebas en 30.35 segundos. Las mediciones de rendimiento se reportan como resultados de loopback local y no se presentan como resultados de Docker o AWS.
+La implementación cubre RF1, RF2 y la semántica declarada de RF3. El 6 de noviembre de 2026 pasaron nueve pruebas locales en 40.87 segundos. Se ejecutaron además Docker Compose con TLS en GitHub Actions y un despliegue Docker en tres VMs de AWS Academy. En AWS se recuperó un archivo de 16777236 bytes repartido en 17 bloques, se mantuvo la integridad con un DataNode detenido, se confirmó una escritura con réplica desconectada, se restauró la redundancia y se comprobó relevo de líder. Sin mayoría se rechazaron las escrituras. Las mediciones locales, Docker y AWS se presentan separadas.
 
 ## Requisitos y alcance
 
@@ -24,13 +24,13 @@ Los dos diseños individuales coincidieron en la separación entre control y dat
 
 | Tema | Santiago | Lifeng | Arquitectura grupal |
 | --- | --- | --- | --- |
-| Escritura S2S | Cadena DN 1 a DN 2 a DN 3 | Fan out desde el DN de entrada | Cadena para carga y copias paralelas para reparación |
+| Escritura S2S | Cadena DN 1 a DN 2 a DN 3 | Fan out desde el DN de entrada | Cadena para carga y copias directas para reparación |
 | Control | 3 o 5 MDS Raft | 3 MDS Raft | 3 MDS con núcleo Raft verificable |
 | Réplicas | R 3, mínimo 2 | R 3, W 2 | R 3, commit con 2 verificadas |
 | Consistencia | Metadatos linealizables y close to open | Manifiesto atómico y snapshots | Log por mayoría, snapshots y close to open |
 | Seguridad | TLS, mTLS, Argon2id y AES GCM | TLS, mTLS, Argon2id y AES GCM | TLS, HMAC interno, scrypt y AES GCM |
 
-La cadena reduce el ancho de banda de subida del cliente y muestra comunicación S2S directa. La reparación paralela evita que el orden original del pipeline limite la recuperación. La sustitución de mTLS por TLS más HMAC y de Argon2id por scrypt se declara como una decisión de prototipo, no como equivalencia de seguridad completa.
+La cadena reduce el ancho de banda de subida del cliente y muestra comunicación S2S directa. La reparación S2S directa evita que el orden original del pipeline limite la recuperación. La sustitución de mTLS por TLS más HMAC y de Argon2id por scrypt se declara como una decisión de prototipo, no como equivalencia de seguridad completa.
 
 ## Arquitectura
 
@@ -40,7 +40,15 @@ Cada MDS conserva dos bases SQLite independientes: una para el log y estado Raft
 
 Cada DataNode usa un volumen propio. Los bytes se cifran con AES 256 GCM y se asocian mediante AAD al block id y la generación. El archivo de metadatos del bloque conserva longitud y SHA 256. El nodo escribe archivos temporales, hace `fsync` y renombra antes de responder.
 
-El despliegue Docker contiene tres MDS y cuatro DataNodes en una red bridge privada. Una CA de desarrollo firma certificados con nombres internos. Los volúmenes mantienen estado separado. El despliegue no se ejecutó en el equipo de desarrollo porque Docker no está instalado, pero la misma separación se validó con siete procesos TCP reales.
+Docker Compose contiene tres MDS y cuatro DataNodes en una red bridge privada y fue validado en GitHub Actions. En AWS se ejecutaron contenedores Docker con red de host sobre tres VMs t3.micro de Amazon Linux 2023. Los puertos de servicio solo admiten tráfico desde el grupo de seguridad del proyecto. La administración utiliza Systems Manager, sin abrir SSH. Los datos se guardan en directorios independientes sobre discos gp3 cifrados; los servicios usan TLS con una CA de laboratorio y SAN para las IP privadas.
+
+| Máquina | Zona AWS | Dirección privada | Servicios |
+| --- | --- | --- | --- |
+| VM 1 | us-east-1a | 172.31.22.6 | MDS 1 en 8443 y DN 1 en 9443 |
+| VM 2 | us-east-1b | 172.31.34.173 | MDS 2 en 8443 y DN 2 en 9443 |
+| VM 3 | us-east-1c | 172.31.10.22 | MDS 3 en 8443, DN 3 en 9443 y DN 4 en 9444 |
+
+La tercera VM contiene dos DataNodes: tres réplicas de servicio no equivalen necesariamente a tres máquinas o zonas distintas. Las IP públicas asignadas a las VMs solo permiten salida para instalar dependencias y contactar con Systems Manager; no se habilitó entrada pública a los servicios.
 
 ## Distribución y publicación
 
@@ -48,7 +56,7 @@ El tamaño predeterminado es 8 MiB y se configura por variable de entorno. Las p
 
 El primer DataNode valida el token, cifra y persiste el bloque y lo reenvía al siguiente. La respuesta contiene las réplicas que completaron el almacenamiento. Antes del commit, el MDS consulta cada nodo y compara longitud y SHA 256 con el manifiesto propuesto. Si un bloque tiene menos de dos réplicas, la versión no se publica.
 
-El commit contiene la versión base, el epoch, el tamaño, el hash final y la lista ordenada de bloques. El líder lo incorpora al log y espera mayoría. La máquina de estados inserta el nuevo manifiesto, incrementa la versión y libera el lease en una sola transacción. Un reintento con el mismo request id recupera el resultado ya aplicado.
+El commit contiene la versión base, el epoch, el tamaño, el hash final y la lista ordenada de bloques. El líder lo incorpora al log y espera mayoría. La máquina de estados inserta el nuevo manifiesto, incrementa la versión y libera el lease en una sola transacción. La recuperación explícita del resultado por request id se implementa para mkdir; no se garantiza idempotencia general de todos los reintentos de commit.
 
 ## Consistencia y concurrencia
 
@@ -56,7 +64,9 @@ Los metadatos confirmados se ordenan en el log. Un nodo sin mayoría no puede ac
 
 La exclusión es por archivo. El lease EX incluye holder, epoch, expiración y versión base. El segundo escritor recibe `LOCKED`. Si el primer cliente se pausa hasta que vence el lease, el siguiente obtiene un epoch mayor. El commit tardío falla porque el epoch o la versión base ya no coincide. Este fencing evita que un escritor zombi publique después de perder el lock.
 
-Los lectores normales no toman lock y mantienen la versión fijada al abrir. Un commit posterior no modifica su manifiesto. Las nuevas aperturas observan la versión confirmada.
+Los lectores normales no toman lock y mantienen la versión fijada al abrir. Un commit posterior no modifica su manifiesto. En la operación normal las nuevas aperturas observan la versión confirmada. No se ofrece linealizabilidad de lectura bajo cualquier partición: falta ReadIndex para impedir que un líder aislado atienda una lectura atrasada.
+
+Se corrigieron dos carreras: el cliente obtiene el lease antes de leer para modificar o anexar, y el líder serializa la planificación con la confirmación de la adquisición del lease. Se probaron dos clientes lanzados simultáneamente durante cinco rondas; en cada ronda hubo un solo ganador y un rechazo LOCKED.
 
 ## Tolerancia a fallos
 
@@ -74,7 +84,7 @@ Las contraseñas se almacenan con scrypt y sal aleatoria. El MDS emite tokens de
 
 La normalización de rutas impide salir de `/users/{uid}`. Las APIs internas requieren un secreto diferente del JWT. Docker activa TLS en MDS y DataNodes. Los bloques se cifran con AES 256 GCM y el cliente valida SHA 256 de bloque y archivo.
 
-La CA, los secretos predeterminados y las claves por nodo son material de laboratorio. Antes de AWS deben rotarse y administrarse fuera del repositorio. El prototipo no implementa mTLS por nodo ni un KMS; estas limitaciones están registradas.
+En AWS se generaron secretos, contraseña y claves por nodo aleatorios, conservados fuera del repositorio. La CA es de laboratorio. El prototipo no implementa mTLS por nodo ni un KMS; estas limitaciones están registradas. El grupo de seguridad solo permite los puertos privados 8443, 9443 y 9444 entre miembros del propio grupo.
 
 ## APIs
 
@@ -84,7 +94,7 @@ Los errores principales son `NOT_LEADER`, `NO_QUORUM`, `LOCKED`, `STALE_FENCING_
 
 ## Pruebas y resultados
 
-La suite levantó tres MDS y cuatro DataNodes con directorios aislados y puertos libres. Se ejecutó en Windows el 5 de noviembre de 2026.
+La suite ampliada levantó tres MDS y cuatro DataNodes con directorios aislados y puertos libres. Se ejecutó en Windows el 6 de noviembre de 2026. La evidencia XML conserva nombres, resultado y duración; GitHub Actions repitió la suite sobre Linux.
 
 | Prueba | Resultado observado |
 | --- | --- |
@@ -94,7 +104,11 @@ La suite levantó tres MDS y cuatro DataNodes con directorios aislados y puertos
 | Seguridad | Ruta ajena rechazada y bloques sin texto plano visible |
 | Falla de DN | Lectura correcta y sustitución de la réplica caída |
 | Falla de MDS | Nuevo líder, lectura y commit posterior |
-| Suite completa | 7 pruebas aprobadas en 30.35 segundos |
+| Transferencia interrumpida | El contenido anterior se conserva y el commit incompleto se rechaza |
+| Corrupción | Una réplica cifrada alterada falla en lectura; el cliente obtiene otra copia íntegra |
+| TLS | Se acepta la CA configurada y se rechaza una CA desconocida |
+| Escritores simultáneos | Un ganador y un LOCKED en cada una de cinco rondas |
+| Suite completa ampliada | 9 pruebas aprobadas en 40.87 segundos |
 
 El benchmark local repitió cada condición tres veces:
 
@@ -103,13 +117,35 @@ El benchmark local repitió cada condición tres veces:
 | 64 KiB | 0.313588 s | 0.199 | 0.023220 s | 2.692 |
 | 512 KiB | 0.644096 s | 0.776 | 0.025934 s | 19.280 |
 
-El archivo mayor obtiene mejor throughput porque amortiza solicitudes, cifrado y commit. No se extrapolan estas cifras a AWS. Falta medir p95, concurrencia y límites de red y disco en las VMs asignadas.
+El archivo mayor obtiene mejor throughput porque amortiza solicitudes, cifrado y commit. No se extrapolan estas cifras a AWS.
+
+### Resultados del despliegue AWS
+
+Se configuró bloque de 1 MiB, R=3, W=2 y lease de 300 segundos. El archivo de 16777236 bytes produjo 17 bloques. La carga tardó 3.099673 segundos. El SHA-256 del original y de las recuperaciones fue c574fc22903d83367ba55623914d6bceffd407af241d20d001e3ec58edd1bf2e.
+
+| Tamaño AWS | Put mediana | Put MiB/s | Get mediana | Get MiB/s |
+| --- | --- | --- | --- | --- |
+| 1 MiB | 0.285585 s | 3.502 | 0.041090 s | 24.337 |
+| 8 MiB | 1.364646 s | 5.862 | 0.152955 s | 52.303 |
+
+Cada condición se repitió tres veces con verificación del hash. No se calcularon p95 ni capacidad máxima. Los tamaños y el hardware difieren de las pruebas locales; esta tabla no aísla el efecto de TLS o de la red.
+
+| Fase AWS | Resultado observado |
+| --- | --- |
+| baseline | RF1-RF3, TLS, autorización y archivo grande íntegro con tres réplicas |
+| degraded | Lectura íntegra y nueva escritura con dn-1 detenido |
+| recovered | Recuperación de tres réplicas y del hash original |
+| failover | El líder cambia de VM 2 a VM 1 y confirma un mkdir nuevo |
+| no-quorum | Con dos MDS detenidos se rechazan escrituras con NO_LEADER |
+| concurrency | Cinco rondas simultáneas con un solo escritor aceptado |
+
+Los JSON de evidence/aws conservan la topología, hashes, controles y tiempos. Las fallas se inyectaron deteniendo contenedores; no se simuló la caída de una zona AWS completa. Los servicios se restauraron después de cada prueba y las VMs se detuvieron al finalizar para reducir consumo.
 
 ## Limitaciones
 
 La implementación Raft no contiene snapshots, compactación, pre vote ni membresía dinámica. Los DataNodes se configuran en el servidor, aunque el cliente recibe ubicaciones dinámicas. No existen cuotas, `mv`, garbage collection ni locks por rango. La reparación usa sondeo periódico. TLS autentica servidores y el secreto HMAC protege llamadas internas, pero no existe mTLS individual.
 
-Docker y AWS no se ejecutaron en este equipo. La entrega final debe añadir evidencia de contenedores y VMs sin sustituir los resultados locales ni inventar métricas.
+No existe ReadIndex para lecturas linealizables durante particiones, scrubbing de corrupción latente ni reparación paralela. La corrupción se detecta al leer y habilita una réplica alternativa; el worker de reparación comprueba metadatos. El cliente reconstruye archivos completos en memoria. La aplicación no ofrece un sistema de archivos de producción ni idempotencia general de todas las mutaciones. Las simplificaciones requieren revisión y, cuando corresponda, aprobación del profesor.
 
 ## Contribuciones y defensa
 
@@ -119,7 +155,7 @@ Ambos deben poder explicar el flujo completo, el criterio de commit, los leases,
 
 ## Conclusión
 
-DFSha demuestra una arquitectura distribuida verificable: separa control y datos, distribuye bloques, replica por S2S, publica versiones atómicas, coordina escritores y continúa ante la caída de un DataNode o del líder MDS. La suite confirma las garantías principales en procesos separados. El paso restante para la entrega es ejecutar la misma configuración en Docker y AWS Academy, conservar evidencia y completar contribuciones identificables de los dos estudiantes.
+DFSha demuestra una arquitectura distribuida verificable: separa control y datos, distribuye bloques, replica por S2S, publica versiones atómicas, coordina escritores y continúa ante la caída comprobada de un DataNode o del líder MDS. Las pruebas se ejecutaron en procesos locales, Docker Compose y tres VMs de AWS Academy. La entrega incluye código, instrucciones y evidencias. La grabación, la defensa, la revisión de simplificaciones con el profesor y las contribuciones personales siguen correspondiendo a los estudiantes.
 
 ## Referencias
 

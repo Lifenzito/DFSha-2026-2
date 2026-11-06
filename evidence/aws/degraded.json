@@ -1,0 +1,14 @@
+{
+  "phase": "degraded",
+  "timestamp": "2026-11-06T17:03:36.812202+00:00",
+  "mds": [
+    "https://172.31.22.6:8443",
+    "https://172.31.34.173:8443",
+    "https://172.31.10.22:8443"
+  ],
+  "checks": {
+    "large_file_integrity": true,
+    "write_and_read_with_disconnected_replica": true
+  },
+  "leader": "https://172.31.34.173:8443"
+}

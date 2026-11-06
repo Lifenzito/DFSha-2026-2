@@ -11,7 +11,7 @@ Los cuatro DataNodes almacenan bloques cifrados. Un bloque llega como datos temp
 ## Flujo de carga
 
 1. El cliente autentica al usuario y abre el archivo en modo escritura.
-2. El líder MDS registra un lease EX con epoch creciente.
+2. El líder MDS registra un lease EX con epoch y holder UUID.
 3. Para cada bloque, el MDS selecciona tres DataNodes sanos y emite un token de escritura de cinco minutos.
 4. El cliente envía el bloque al primer DataNode.
 5. El primer nodo almacena y reenvía al segundo; el segundo reenvía al tercero.
@@ -29,7 +29,7 @@ Los cuatro DataNodes almacenan bloques cifrados. Un bloque llega como datos temp
 
 ## Concurrencia
 
-La exclusión es por archivo. `open write` crea un lease de 30 segundos y un epoch monotónico. Un segundo escritor recibe `LOCKED`. Si un lease vence, el siguiente escritor obtiene un epoch mayor. El commit valida el epoch y la versión base; un escritor antiguo recibe `STALE_FENCING_TOKEN` o `VERSION_CONFLICT`.
+La exclusión es por archivo. `open write` crea un lease de 30 segundos y un epoch asociado al holder UUID. Un segundo escritor recibe `LOCKED`. Si un lease vence sin haberse liberado, el siguiente obtiene un epoch mayor. Cada lease incluye además un holder UUID; después de liberar uno no se mantiene un contador global de epochs. El commit valida el epoch y la versión base; un escritor antiguo recibe `STALE_FENCING_TOKEN` o `VERSION_CONFLICT`.
 
 Los lectores no bloquean escritores. Un handle de lectura conserva el manifiesto de su apertura y no observa una versión parcial.
 

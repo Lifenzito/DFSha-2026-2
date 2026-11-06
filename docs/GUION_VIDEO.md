@@ -10,7 +10,7 @@ En pantalla: portada del informe y diagrama de arquitectura.
 
 ## 0 45 a 2 00 Comparación y decisión grupal
 
-Santiago resume las coincidencias de las propuestas: MDS, Raft, R 3, W 2, bloques inmutables y leases. Lifeng explica la diferencia entre pipeline y fan out. La decisión final combina cadena S2S de escritura con reparación paralela.
+Santiago resume las coincidencias de las propuestas: MDS, Raft, R 3, W 2, bloques inmutables y leases. Lifeng explica la diferencia entre pipeline y fan out. La decisión final combina cadena S2S de escritura con reparación S2S directa.
 
 En pantalla: tabla de `docs/COMPARACION.md`.
 
@@ -78,7 +78,7 @@ Lifeng muestra una autenticación válida, un acceso de otro usuario rechazado y
 
 ## 10 30 a 11 30 Resultados
 
-Santiago muestra la suite con 7 pruebas aprobadas y la tabla de 64 KiB frente a 512 KiB. Aclara que esos resultados son de loopback local. Si ya existen resultados Docker o AWS, los presenta por separado con fecha y commit.
+Santiago muestra la suite ampliada con 9 pruebas aprobadas. Separa los resultados de loopback de AWS: 1 MiB y 8 MiB, tres repeticiones por condición. En AWS muestra el archivo de 16777236 bytes en 17 bloques y su hash, las evidencias JSON de fallos y el workflow Docker aprobado. Explica que no se midieron p95 ni saturación con muchos usuarios.
 
 ## 11 30 a 12 00 Cierre y contribuciones
 

@@ -1,0 +1,43 @@
+{
+  "region": "us-east-1",
+  "instance_type": "t3.micro",
+  "disks": "3 encrypted gp3 disks, 8 GiB each",
+  "instances": [
+    {
+      "name": "VM-1",
+      "private_ip": "172.31.22.6",
+      "zone": "us-east-1a"
+    },
+    {
+      "name": "VM-2",
+      "private_ip": "172.31.34.173",
+      "zone": "us-east-1b"
+    },
+    {
+      "name": "VM-3",
+      "private_ip": "172.31.10.22",
+      "zone": "us-east-1c"
+    }
+  ],
+  "source_commit": "fb58c0f18bc80804ba54d3db4153a9027b1e6ca1",
+  "source_hashes": {
+    "src/dfsha/cli.py": "f9e9fa4ff7446f2d46ff5a43dcc6f6dcd813fbca1077ffa8ceb5bc2a85d47678",
+    "src/dfsha/client.py": "7780c63939de167e87e6c87f6d2a55a99aaaac6b466d4cc6e9c0dbda4c75d18b",
+    "src/dfsha/config.py": "61ce6f8a08b15a5475f594bfa7e44d48a5de58a00e4a96d7503950bf42a775fd",
+    "src/dfsha/datanode_app.py": "a85adaff967cead00e21df013063f721779945103fd48819e485979f70545207",
+    "src/dfsha/mds_app.py": "2a55674fa8a175bbe07c7bc6fc47d322b1355c3db4092ff82f2af392311cf13c",
+    "src/dfsha/metadata_store.py": "a839bf7e3d153309ce66a6f79009497e59d221514c8188f305c7ae589d39ebe3",
+    "src/dfsha/raft.py": "66113400e0959eb74677fb0706b11de4131af2376b56e0a864fb298661cd4a01",
+    "src/dfsha/security.py": "a2d169e1ef7854eee0e3fb8f513d48b7ff285442b4f52177fe1dbafea554f4fb",
+    "src/dfsha/__init__.py": "1944b4f3ef49e5006d0abec98de00adc7475f8ea1f44801e8eb45a54edbe88dc"
+  },
+  "phase_source_commits": {
+    "baseline": "720e373a5e330d75b1aec7e8701d3f7117523506",
+    "degraded": "720e373a5e330d75b1aec7e8701d3f7117523506",
+    "recovered": "720e373a5e330d75b1aec7e8701d3f7117523506",
+    "failover": "720e373a5e330d75b1aec7e8701d3f7117523506",
+    "no-quorum": "720e373a5e330d75b1aec7e8701d3f7117523506",
+    "concurrency": "fb58c0f18bc80804ba54d3db4153a9027b1e6ca1"
+  },
+  "final_instance_state": "stopped"
+}

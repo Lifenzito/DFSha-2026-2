@@ -1,12 +1,12 @@
 # DFSha Fase II
 
-DFSha es un prototipo ejecutable de sistema de archivos distribuido para la Opción 1 cliente servidor con comunicación servidor a servidor. Separa el plano de control en tres Metadata Servers y el plano de datos en cuatro DataNodes. La escritura envía cada bloque una sola vez al primer DataNode y continúa por una cadena S2S; la reparación copia bloques en paralelo desde una réplica sana.
+DFSha es un prototipo ejecutable de sistema de archivos distribuido para la Opción 1 cliente servidor con comunicación servidor a servidor. Separa el plano de control en tres Metadata Servers y el plano de datos en cuatro DataNodes. La escritura envía cada bloque una sola vez al primer DataNode y continúa por una cadena S2S; la reparación copia bloques directamente desde una réplica sana.
 
 El repositorio cubre RF1 a RF3, partición, réplica R igual a 3, confirmación mínima W igual a 2, elección de líder, metadatos por mayoría, leases exclusivos con fencing, hashes SHA 256, cifrado AES 256 GCM, TLS, autorización por usuario, pruebas de fallos y mediciones reproducibles.
 
 ## Estado verificado
 
-El 5 de noviembre de 2026 se ejecutó la suite completa en Windows con siete servicios HTTP reales en procesos separados. Pasaron 7 pruebas en 30.35 segundos. La evidencia JUnit está en `evidence/pytest.xml`.
+El 6 de noviembre de 2026 pasaron 9 pruebas en Windows en 40.87 segundos, con servicios reales separados, TLS, corrupción de una réplica, transferencia interrumpida y escritores simultáneos. La evidencia está en `evidence/pytest-expanded.xml`. También se validaron Python y Docker Compose con TLS en GitHub Actions.
 
 Las pruebas verificaron:
 
@@ -19,7 +19,7 @@ Las pruebas verificaron:
 - Elección de un MDS nuevo después de detener al líder y un commit posterior al relevo.
 - Cifrado en reposo comprobando que el archivo `.blk` no contiene el texto plano.
 
-Docker Compose y TLS están preparados, pero no se ejecutaron en este equipo porque Docker no está instalado. El despliegue en AWS Academy también queda pendiente de ejecución por los estudiantes; no se presentan resultados inventados de esos entornos.
+Se ejecutó Docker en tres máquinas t3.micro de AWS Academy, en us-east-1a, us-east-1b y us-east-1c. Se recuperó un archivo de 16 MiB más 20 bytes, dividido en 17 bloques, con SHA-256 idéntico. Pasaron las pruebas de RF1-RF3, TLS, autorización, escritura con una réplica desconectada, reparación, relevo de líder y rechazo sin mayoría. Las evidencias están en `evidence/aws/`. Los servicios no tienen puertos de entrada abiertos a Internet. Las máquinas se detienen al terminar la validación; sus discos conservan la demostración.
 
 ## Arquitectura
 
@@ -30,7 +30,7 @@ flowchart LR
     C -->|bloque y token| D1[DataNode 1]
     D1 -->|S2S cadena| D2[DataNode 2]
     D2 -->|S2S cadena| D3[DataNode 3]
-    D1 -. reparación paralela .-> D4[DataNode 4]
+    D1 -. reparación S2S .-> D4[DataNode 4]
     M -->|ubicaciones dinámicas| C
 ```
 
@@ -50,7 +50,7 @@ La prueba de integración inicia y detiene tres MDS y cuatro DataNodes automáti
 
 ## Inicio con Docker
 
-1. Copiar `.env.example` como `.env` y cambiar todos los secretos y la contraseña.
+1. Ejecutar `python scripts/init_environment.py` para generar `.env` con secretos y claves aleatorios. El programa no reemplaza archivos existentes.
 2. Generar la CA y los certificados de desarrollo.
 3. Levantar los siete servicios.
 
@@ -123,6 +123,12 @@ dfsha lock /entrada.bin --hold 10
 ## Alcance del consenso
 
 La implementación contiene el núcleo verificable de Raft: términos persistentes, votos, elección, `AppendEntries`, comprobación de log, mayoría, índice de commit y aplicación ordenada. No implementa snapshots, cambio dinámico de membresía, pre vote ni optimizaciones de producción. El informe la denomina implementación Raft mínima del prototipo y no un clúster de producción.
+
+No se afirma linealizabilidad de lecturas ante un líder aislado: falta una barrera ReadIndex. La reparación detecta ausencia por sondeo; una corrupción se detecta al leer y permite probar otra réplica, pero no hay scrubbing automático del disco. El epoch se combina con un holder UUID y versión base; no se ofrece un contador persistente entre todos los leases ya liberados.
+
+## Reproducir el despliegue AWS
+
+`docs/DESPLIEGUE.md` describe el controlador `scripts/aws_lab.py`, la topología real, las fases de prueba y la detención. Las credenciales temporales y el estado con secretos quedan fuera de GitHub. `docs/ENTREGA.md` enumera los entregables y las tareas personales que siguen correspondiendo a los integrantes.
 
 ## Licencia académica
 

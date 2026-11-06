@@ -1,0 +1,78 @@
+[
+  {
+    "vm": "VM-1",
+    "private_ip": "172.31.22.6",
+    "zone": "us-east-1a",
+    "nodes": [
+      "mds-1",
+      "dn-1"
+    ],
+    "logs": "dn-1 Up 7 minutes\nmds-1 Up 5 minutes\nSERVICE:mds-1\nINFO:     172.31.34.173:47076 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:47088 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:47090 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:47104 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:47112 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:47124 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:47132 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:47138 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:47152 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:47156 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:47172 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:47176 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:47192 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:47204 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:47218 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nSERVICE:dn-1\nINFO:     172.31.34.173:45358 - \"GET /internal/blocks/702bf5fb-edda-4796-b910-d9ef267dfac1/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:45368 - \"GET /internal/blocks/e44a0aeb-5f5d-42bb-abb2-86820e5e4036/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:45370 - \"GET /internal/blocks/6d1e8211-ae27-442c-8142-126bfe7416a9/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:45382 - \"GET /internal/blocks/552876c0-ef5d-4bcb-8dc9-2580afaf3b60/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:45384 - \"GET /internal/blocks/8bd5a17d-c496-4dd0-9b44-acfcbc455f14/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:45398 - \"GET /internal/blocks/3e9733c0-8285-4ee8-bec4-2f14983462e6/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:45402 - \"GET /internal/blocks/6f3e6ef5-a033-4ced-9224-f17ec54885ba/status HTTP/1.1\" 200 OK\nINFO:     Shutting down\nINFO:     Waiting for application shutdown.\nINFO:     Application shutdown complete.\nINFO:     Finished server process [1]\nINFO:     Started server process [1]\nINFO:     Waiting for application startup.\nINFO:     Application startup complete.\nINFO:     Uvicorn running on https://0.0.0.0:9443 (Press CTRL+C to quit)\n",
+    "verified_runtime_source_hashes": {
+      "__init__.py": "1944b4f3ef49e5006d0abec98de00adc7475f8ea1f44801e8eb45a54edbe88dc",
+      "cli.py": "f9e9fa4ff7446f2d46ff5a43dcc6f6dcd813fbca1077ffa8ceb5bc2a85d47678",
+      "client.py": "7780c63939de167e87e6c87f6d2a55a99aaaac6b466d4cc6e9c0dbda4c75d18b",
+      "config.py": "61ce6f8a08b15a5475f594bfa7e44d48a5de58a00e4a96d7503950bf42a775fd",
+      "datanode_app.py": "a85adaff967cead00e21df013063f721779945103fd48819e485979f70545207",
+      "mds_app.py": "2a55674fa8a175bbe07c7bc6fc47d322b1355c3db4092ff82f2af392311cf13c",
+      "metadata_store.py": "a839bf7e3d153309ce66a6f79009497e59d221514c8188f305c7ae589d39ebe3",
+      "raft.py": "66113400e0959eb74677fb0706b11de4131af2376b56e0a864fb298661cd4a01",
+      "security.py": "a2d169e1ef7854eee0e3fb8f513d48b7ff285442b4f52177fe1dbafea554f4fb"
+    },
+    "storage": {
+      "encrypted_blocks": 36,
+      "plaintext_marker_present": false
+    }
+  },
+  {
+    "vm": "VM-2",
+    "private_ip": "172.31.34.173",
+    "zone": "us-east-1b",
+    "nodes": [
+      "mds-2",
+      "dn-2"
+    ],
+    "logs": "dn-2 Up 12 minutes\nmds-2 Up 5 minutes\nSERVICE:mds-2\nINFO:     172.31.10.22:42360 - \"POST /v1/files/open HTTP/1.1\" 200 OK\nINFO:     172.31.10.22:42374 - \"POST /v1/files/open HTTP/1.1\" 423 Locked\nINFO:     172.31.10.22:42380 - \"POST /v1/files/close HTTP/1.1\" 200 OK\nINFO:     172.31.10.22:42394 - \"POST /v1/files/open HTTP/1.1\" 200 OK\nINFO:     172.31.10.22:42382 - \"POST /v1/files/open HTTP/1.1\" 423 Locked\nINFO:     172.31.10.22:42408 - \"POST /v1/files/close HTTP/1.1\" 200 OK\nINFO:     172.31.10.22:42430 - \"POST /v1/files/open HTTP/1.1\" 423 Locked\nINFO:     172.31.10.22:42414 - \"POST /v1/files/open HTTP/1.1\" 200 OK\nINFO:     172.31.10.22:42436 - \"POST /v1/files/close HTTP/1.1\" 200 OK\nINFO:     172.31.10.22:42446 - \"POST /v1/files/open HTTP/1.1\" 200 OK\nINFO:     172.31.10.22:42444 - \"POST /v1/files/open HTTP/1.1\" 423 Locked\nINFO:     172.31.10.22:42466 - \"POST /v1/files/close HTTP/1.1\" 200 OK\nINFO:     172.31.10.22:42480 - \"POST /v1/files/open HTTP/1.1\" 200 OK\nINFO:     172.31.10.22:42482 - \"POST /v1/files/open HTTP/1.1\" 423 Locked\nINFO:     172.31.10.22:42492 - \"POST /v1/files/close HTTP/1.1\" 200 OK\nSERVICE:dn-2\nINFO:     172.31.34.173:46222 - \"GET /internal/blocks/6f3e6ef5-a033-4ced-9224-f17ec54885ba/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46234 - \"GET /internal/blocks/6389a865-232f-4f1d-ad94-8acd0888824b/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46238 - \"GET /internal/blocks/55e45be8-50c1-4d41-93d5-ffdaaa178d29/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46250 - \"GET /internal/blocks/f0f21922-bb63-4eed-a6b9-9273b0c68ddf/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46262 - \"GET /internal/blocks/8dcc623b-e07d-473e-9cca-64594f77eedb/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46276 - \"GET /internal/blocks/8dde0b1f-e142-45ae-9d8f-979907ec87ce/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46292 - \"GET /internal/blocks/83db17f8-b144-4468-aac6-f1c2b9c12a11/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46302 - \"GET /internal/blocks/9521e8c2-4f59-4c8c-887d-47520fb3fcef/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46310 - \"GET /internal/blocks/43740151-c5ba-4fe8-b7ee-af36f2719828/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46322 - \"GET /internal/blocks/ff2ef22b-b134-448d-984f-18151b8702b1/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46338 - \"GET /internal/blocks/8650f4fc-ba4d-4868-b825-a2400325b14b/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46340 - \"GET /internal/blocks/08ce5766-3f1f-4792-9fa4-f28bd2a9491c/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46348 - \"GET /internal/blocks/27f256f3-0f89-417f-8718-f8b626306811/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46356 - \"GET /internal/blocks/8c719bd8-f47d-452e-8f2f-2a30da8cab42/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46364 - \"GET /internal/blocks/6ebbe7e0-eb59-4edb-9687-8762effca624/status HTTP/1.1\" 200 OK\n",
+    "verified_runtime_source_hashes": {
+      "__init__.py": "1944b4f3ef49e5006d0abec98de00adc7475f8ea1f44801e8eb45a54edbe88dc",
+      "cli.py": "f9e9fa4ff7446f2d46ff5a43dcc6f6dcd813fbca1077ffa8ceb5bc2a85d47678",
+      "client.py": "7780c63939de167e87e6c87f6d2a55a99aaaac6b466d4cc6e9c0dbda4c75d18b",
+      "config.py": "61ce6f8a08b15a5475f594bfa7e44d48a5de58a00e4a96d7503950bf42a775fd",
+      "datanode_app.py": "a85adaff967cead00e21df013063f721779945103fd48819e485979f70545207",
+      "mds_app.py": "2a55674fa8a175bbe07c7bc6fc47d322b1355c3db4092ff82f2af392311cf13c",
+      "metadata_store.py": "a839bf7e3d153309ce66a6f79009497e59d221514c8188f305c7ae589d39ebe3",
+      "raft.py": "66113400e0959eb74677fb0706b11de4131af2376b56e0a864fb298661cd4a01",
+      "security.py": "a2d169e1ef7854eee0e3fb8f513d48b7ff285442b4f52177fe1dbafea554f4fb"
+    },
+    "storage": {
+      "encrypted_blocks": 48,
+      "plaintext_marker_present": false
+    }
+  },
+  {
+    "vm": "VM-3",
+    "private_ip": "172.31.10.22",
+    "zone": "us-east-1c",
+    "nodes": [
+      "mds-3",
+      "dn-3",
+      "dn-4"
+    ],
+    "logs": "dn-4 Up 11 minutes\ndn-3 Up 11 minutes\nmds-3 Up 5 minutes\nSERVICE:mds-3\nINFO:     172.31.34.173:37348 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:37364 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:37374 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:37386 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:37396 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:37408 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:37416 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:37430 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:37440 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:37446 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:37452 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:37462 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:37476 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:37486 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:37490 - \"POST /internal/raft/append HTTP/1.1\" 200 OK\nSERVICE:dn-3\nINFO:     172.31.34.173:43298 - \"GET /internal/blocks/ffc36943-cc33-4984-9e66-fec72d124b6d/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:43314 - \"GET /internal/blocks/c19bd9d1-b875-46dd-96bd-827b9a88cd6a/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:43318 - \"GET /internal/blocks/a6a18a9e-3833-4a36-be76-f6030e6b440b/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:43326 - \"GET /internal/blocks/28a61ffb-c63f-45e0-87c9-b16e6a5db01d/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:43342 - \"GET /internal/blocks/36fc8609-06b6-4ef2-91e9-27e8a2c4106f/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:43354 - \"GET /internal/blocks/190f4e71-8c9d-46da-a5fc-532bee8d39e7/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:43366 - \"GET /internal/blocks/c99fa4c3-5623-4369-a598-7a24634fce20/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:43368 - \"GET /internal/blocks/86df6936-0c5f-4b93-9a94-b23bddd98d17/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:43374 - \"GET /internal/blocks/702bf5fb-edda-4796-b910-d9ef267dfac1/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:43388 - \"GET /internal/blocks/e44a0aeb-5f5d-42bb-abb2-86820e5e4036/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:43404 - \"GET /internal/blocks/6d1e8211-ae27-442c-8142-126bfe7416a9/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:43408 - \"GET /internal/blocks/552876c0-ef5d-4bcb-8dc9-2580afaf3b60/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:43422 - \"GET /internal/blocks/8bd5a17d-c496-4dd0-9b44-acfcbc455f14/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:43428 - \"GET /internal/blocks/3e9733c0-8285-4ee8-bec4-2f14983462e6/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:43438 - \"GET /internal/blocks/77321562-947d-4843-a6ad-b556c4979c08/status HTTP/1.1\" 200 OK\nSERVICE:dn-4\nINFO:     172.31.34.173:46554 - \"GET /internal/blocks/ffc36943-cc33-4984-9e66-fec72d124b6d/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46560 - \"GET /internal/blocks/c19bd9d1-b875-46dd-96bd-827b9a88cd6a/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46564 - \"GET /internal/blocks/a6a18a9e-3833-4a36-be76-f6030e6b440b/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46574 - \"GET /internal/blocks/28a61ffb-c63f-45e0-87c9-b16e6a5db01d/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46586 - \"GET /internal/blocks/36fc8609-06b6-4ef2-91e9-27e8a2c4106f/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46600 - \"GET /internal/blocks/190f4e71-8c9d-46da-a5fc-532bee8d39e7/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46612 - \"GET /internal/blocks/c99fa4c3-5623-4369-a598-7a24634fce20/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46622 - \"GET /internal/blocks/86df6936-0c5f-4b93-9a94-b23bddd98d17/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46638 - \"GET /internal/blocks/702bf5fb-edda-4796-b910-d9ef267dfac1/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46644 - \"GET /internal/blocks/e44a0aeb-5f5d-42bb-abb2-86820e5e4036/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46652 - \"GET /internal/blocks/6d1e8211-ae27-442c-8142-126bfe7416a9/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46662 - \"GET /internal/blocks/552876c0-ef5d-4bcb-8dc9-2580afaf3b60/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46670 - \"GET /internal/blocks/8bd5a17d-c496-4dd0-9b44-acfcbc455f14/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46672 - \"GET /internal/blocks/3e9733c0-8285-4ee8-bec4-2f14983462e6/status HTTP/1.1\" 200 OK\nINFO:     172.31.34.173:46680 - \"GET /internal/blocks/77321562-947d-4843-a6ad-b556c4979c08/status HTTP/1.1\" 200 OK\n",
+    "verified_runtime_source_hashes": {
+      "__init__.py": "1944b4f3ef49e5006d0abec98de00adc7475f8ea1f44801e8eb45a54edbe88dc",
+      "cli.py": "f9e9fa4ff7446f2d46ff5a43dcc6f6dcd813fbca1077ffa8ceb5bc2a85d47678",
+      "client.py": "7780c63939de167e87e6c87f6d2a55a99aaaac6b466d4cc6e9c0dbda4c75d18b",
+      "config.py": "61ce6f8a08b15a5475f594bfa7e44d48a5de58a00e4a96d7503950bf42a775fd",
+      "datanode_app.py": "a85adaff967cead00e21df013063f721779945103fd48819e485979f70545207",
+      "mds_app.py": "2a55674fa8a175bbe07c7bc6fc47d322b1355c3db4092ff82f2af392311cf13c",
+      "metadata_store.py": "a839bf7e3d153309ce66a6f79009497e59d221514c8188f305c7ae589d39ebe3",
+      "raft.py": "66113400e0959eb74677fb0706b11de4131af2376b56e0a864fb298661cd4a01",
+      "security.py": "a2d169e1ef7854eee0e3fb8f513d48b7ff285442b4f52177fe1dbafea554f4fb"
+    },
+    "storage": {
+      "encrypted_blocks": 48,
+      "plaintext_marker_present": false
+    }
+  }
+]

@@ -21,8 +21,15 @@
 - La autenticación interna no es mTLS.
 - La reparación usa sondeo periódico y no prioriza por riesgo o ancho de banda.
 - La prueba local usa loopback. No mide red física, disco de VM ni zonas de AWS.
-- Docker Compose fue revisado y se generaron certificados, pero no se ejecutó porque Docker no está instalado en el equipo actual.
-- El despliegue AWS Academy no se ejecutó y requiere credenciales y máquinas asignadas a los estudiantes.
+- Docker Compose se ejecutó en GitHub Actions y Docker se ejecutó en tres VMs de AWS Academy; Docker no está instalado en el PC de desarrollo.
+- Los resultados AWS corresponden a tres VMs t3.micro y cuatro DataNodes; dos DataNodes comparten la tercera VM. El número de réplicas no equivale al número de hosts o zonas independientes.
+- No hay ReadIndex ni barrera de quorum para cada lectura: un líder aislado podría atender lecturas atrasadas. Se probó rechazo de escrituras sin mayoría, no linealizabilidad bajo toda partición posible.
+- El sondeo consulta metadatos de bloques, no vuelve a descifrar todos los bytes. La corrupción se detecta en lectura y se prueba otra réplica; no existe scrubbing ni reparación automática comprobada de corrupción latente.
+- Los leases se identifican por holder UUID, epoch y versión base. El epoch no es un contador global persistente después de liberar un lease.
+- No se promete idempotencia general de todas las mutaciones: la recuperación por request id está implementada explícitamente para mkdir, no para todos los reintentos de commit.
+- La reparación actual copia destinos secuencialmente. La descarga del cliente y la comunicación de Raft sí emplean paralelismo.
+- Los archivos se reconstruyen completos en memoria para read/write; las mediciones no demuestran capacidad de archivos mayores que la RAM disponible.
+- Las simplificaciones deben ser revisadas por los estudiantes y aprobadas por el profesor cuando corresponda. No se ha obtenido esa aprobación desde este trabajo.
 
 ## Extensiones recomendadas
 
