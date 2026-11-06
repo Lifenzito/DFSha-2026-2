@@ -105,6 +105,7 @@ def create_app(settings: MDSSettings | None = None) -> FastAPI:
         heartbeat_s=settings.heartbeat_s,
     )
     repair_stop = threading.Event()
+    lease_plan_lock = threading.RLock()
 
     def _node_status(endpoint: str, block: dict[str, Any]) -> bool:
         try:
@@ -310,14 +311,17 @@ def create_app(settings: MDSSettings | None = None) -> FastAPI:
         if body.mode == "read":
             manifest = _with_read_tokens(store.get_manifest(uid, body.path), uid)
             return {"handle": str(uuid.uuid4()), "mode": "read", "snapshot": manifest}
-        plan = store.plan_open_write(
-            uid,
-            body.path,
-            create=body.create,
-            truncate=body.truncate,
-            lease_ttl_s=settings.lease_ttl_s,
-        )
-        raft.propose(plan.command)
+        # Serialize the state check with its replicated acquisition. Serializing
+        # only propose() allows two requests to plan the same free lease.
+        with lease_plan_lock:
+            plan = store.plan_open_write(
+                uid,
+                body.path,
+                create=body.create,
+                truncate=body.truncate,
+                lease_ttl_s=settings.lease_ttl_s,
+            )
+            raft.propose(plan.command)
         response = {**plan.response, "mode": "write", "block_size": settings.block_size}
         if plan.response["existing"] and not body.truncate:
             response["snapshot"] = store.get_manifest(uid, body.path)

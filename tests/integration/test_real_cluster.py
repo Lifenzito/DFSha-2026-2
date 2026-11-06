@@ -344,4 +344,17 @@ def test_append_holds_lease_before_reading_to_prevent_lost_update(real_cluster: 
         pending.result()
     second.append("/race", b"-B")
     assert second.get_bytes("/race") == b"base-A-B"
+    for _ in range(5):
+        barrier = threading.Barrier(2)
+        def compete(client):
+            barrier.wait(timeout=5)
+            try:
+                return client.open_write("/race")
+            except DFShaClientError as error:
+                return error.code
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            outcomes = list(executor.map(compete, [first, second]))
+        winners = [value for value in outcomes if isinstance(value, dict)]
+        assert len(winners) == 1 and outcomes.count("LOCKED") == 1
+        first.close(winners[0])
 

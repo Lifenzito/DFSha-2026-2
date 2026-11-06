@@ -11,6 +11,8 @@ import json
 import os
 import statistics
 import time
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -20,7 +22,7 @@ from dfsha.client import DFShaClient, DFShaClientError
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('phase', choices=['baseline', 'degraded', 'recovered', 'failover', 'no-quorum'])
+    parser.add_argument('phase', choices=['baseline', 'degraded', 'recovered', 'failover', 'no-quorum', 'concurrency'])
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     urls = os.environ['DFSHA_MDS_URLS'].split(',')
@@ -38,12 +40,26 @@ def main():
         else:
             raise AssertionError('A write succeeded without a metadata majority')
     else:
+        if args.phase == 'baseline':
+            deadline = time.monotonic() + 180
+            pending = set(urls)
+            while pending and time.monotonic() < deadline:
+                for url in list(pending):
+                    try:
+                        if httpx.get(url+'/health', verify=ca, timeout=2).status_code == 200:
+                            pending.remove(url)
+                    except httpx.HTTPError:
+                        pass
+                if pending:
+                    time.sleep(1)
+            assert not pending, f'Services did not become healthy: {sorted(pending)}'
         client.login(os.environ['DFSHA_USER'], os.environ['DFSHA_PASSWORD'])
         report['leader'] = client.discover_leader()
         if args.phase == 'baseline':
             try:
                 httpx.get(urls[0]+'/health', verify=True, timeout=3)
-            except httpx.ConnectError:
+            except httpx.ConnectError as error:
+                assert 'CERTIFICATE_VERIFY_FAILED' in str(error), str(error)
                 checks['unknown_ca_rejected'] = True
             else:
                 raise AssertionError('An unknown CA was accepted')
@@ -150,6 +166,23 @@ def main():
                 client.mkdir('/aws-demo/after-failover')
                 assert client.stat('/aws-demo/after-failover')['kind']=='dir'
                 checks['new_leader_and_new_commit']=True
+            elif args.phase == 'concurrency':
+                second=DFShaClient(urls,verify=ca,timeout_s=3)
+                second.login(os.environ['DFSHA_USER'],os.environ['DFSHA_PASSWORD'])
+                for _ in range(5):
+                    barrier=threading.Barrier(2)
+                    def compete(actor):
+                        barrier.wait(timeout=10)
+                        try:
+                            return actor.open_write('/aws-demo/rf3')
+                        except DFShaClientError as error:
+                            return error.code
+                    with ThreadPoolExecutor(max_workers=2) as executor:
+                        outcomes=list(executor.map(compete,[client,second]))
+                    winners=[value for value in outcomes if isinstance(value,dict)]
+                    assert len(winners)==1 and outcomes.count('LOCKED')==1
+                    client.close(winners[0])
+                checks['simultaneous_writers_one_winner_five_rounds']=True
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2))
     print(json.dumps(report))

@@ -4,6 +4,8 @@ __pycache__/
 .venv/
 *.egg-info/
 .env
+.aws-lab/
+shared/
 certs/generated/
 data/
 evidence/*.log
