@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dfsha"
+version = "0.1.0"
+description = "Prototipo distribuido DFSha para Sistemas Distribuidos 2026-2"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi==0.115.8",
+  "uvicorn==0.34.0",
+  "httpx==0.28.1",
+  "cryptography==44.0.1",
+  "pydantic==2.10.6",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest==8.3.4",
+  "pytest-cov==6.0.0",
+]
+
+[project.scripts]
+dfsha = "dfsha.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "integration: pruebas que levantan servicios reales por red",
+  "docker: pruebas que requieren Docker Compose",
+]
+

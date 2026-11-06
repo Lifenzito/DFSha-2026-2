@@ -1,0 +1,154 @@
+x-common: &common
+  build: .
+  restart: unless-stopped
+  networks: [dfsha_net]
+  environment: &common-env
+    DFSHA_TLS_ENABLED: "true"
+    DFSHA_TLS_CA: /certs/ca.crt
+    DFSHA_JWT_SECRET: ${DFSHA_JWT_SECRET:-development-jwt-secret-change-me}
+    DFSHA_BLOCK_TOKEN_SECRET: ${DFSHA_BLOCK_TOKEN_SECRET:-development-block-secret-change-me}
+    DFSHA_INTERNAL_SECRET: ${DFSHA_INTERNAL_SECRET:-development-internal-secret-change-me}
+
+x-mds: &mds
+  <<: *common
+  command: >-
+    uvicorn dfsha.mds_app:app --host 0.0.0.0 --port 8443
+    --ssl-certfile /certs/server.crt --ssl-keyfile /certs/server.key
+  environment: &mds-env
+    <<: *common-env
+    DFSHA_DATANODES: https://dn-1:9443,https://dn-2:9443,https://dn-3:9443,https://dn-4:9443
+    DFSHA_BLOCK_SIZE: ${DFSHA_BLOCK_SIZE:-8388608}
+    DFSHA_REPLICATION_FACTOR: "3"
+    DFSHA_MIN_REPLICAS: "2"
+    DFSHA_BOOTSTRAP_USER: ${DFSHA_BOOTSTRAP_USER:-demo}
+    DFSHA_BOOTSTRAP_PASSWORD: ${DFSHA_BOOTSTRAP_PASSWORD:-demo-change-me}
+
+x-dn: &dn
+  <<: *common
+  command: >-
+    uvicorn dfsha.datanode_app:app --host 0.0.0.0 --port 9443
+    --ssl-certfile /certs/server.crt --ssl-keyfile /certs/server.key
+
+services:
+  mds-1:
+    <<: *mds
+    hostname: mds-1
+    environment:
+      <<: *mds-env
+      DFSHA_NODE_ID: mds-1
+      DFSHA_PUBLIC_URL: https://mds-1:8443
+      DFSHA_MDS_PEERS: https://mds-2:8443,https://mds-3:8443
+      DFSHA_DATA_DIR: /data
+      DFSHA_TLS_CERT: /certs/server.crt
+      DFSHA_TLS_KEY: /certs/server.key
+    volumes:
+      - mds1_data:/data
+      - ./certs/generated/mds-1:/certs:ro
+    ports: ["8441:8443"]
+
+  mds-2:
+    <<: *mds
+    hostname: mds-2
+    environment:
+      <<: *mds-env
+      DFSHA_NODE_ID: mds-2
+      DFSHA_PUBLIC_URL: https://mds-2:8443
+      DFSHA_MDS_PEERS: https://mds-1:8443,https://mds-3:8443
+      DFSHA_DATA_DIR: /data
+      DFSHA_TLS_CERT: /certs/server.crt
+      DFSHA_TLS_KEY: /certs/server.key
+    volumes:
+      - mds2_data:/data
+      - ./certs/generated/mds-2:/certs:ro
+    ports: ["8442:8443"]
+
+  mds-3:
+    <<: *mds
+    hostname: mds-3
+    environment:
+      <<: *mds-env
+      DFSHA_NODE_ID: mds-3
+      DFSHA_PUBLIC_URL: https://mds-3:8443
+      DFSHA_MDS_PEERS: https://mds-1:8443,https://mds-2:8443
+      DFSHA_DATA_DIR: /data
+      DFSHA_TLS_CERT: /certs/server.crt
+      DFSHA_TLS_KEY: /certs/server.key
+    volumes:
+      - mds3_data:/data
+      - ./certs/generated/mds-3:/certs:ro
+    ports: ["8443:8443"]
+
+  dn-1:
+    <<: *dn
+    hostname: dn-1
+    environment:
+      <<: *common-env
+      DFSHA_NODE_ID: dn-1
+      DFSHA_PUBLIC_URL: https://dn-1:9443
+      DFSHA_ZONE: zone-a
+      DFSHA_DATA_DIR: /data
+      DFSHA_ENCRYPTION_KEY_HEX: 1111111111111111111111111111111111111111111111111111111111111111
+    volumes: ["dn1_data:/data", "./certs/generated/dn-1:/certs:ro"]
+
+  dn-2:
+    <<: *dn
+    hostname: dn-2
+    environment:
+      <<: *common-env
+      DFSHA_NODE_ID: dn-2
+      DFSHA_PUBLIC_URL: https://dn-2:9443
+      DFSHA_ZONE: zone-b
+      DFSHA_DATA_DIR: /data
+      DFSHA_ENCRYPTION_KEY_HEX: 2222222222222222222222222222222222222222222222222222222222222222
+    volumes: ["dn2_data:/data", "./certs/generated/dn-2:/certs:ro"]
+
+  dn-3:
+    <<: *dn
+    hostname: dn-3
+    environment:
+      <<: *common-env
+      DFSHA_NODE_ID: dn-3
+      DFSHA_PUBLIC_URL: https://dn-3:9443
+      DFSHA_ZONE: zone-c
+      DFSHA_DATA_DIR: /data
+      DFSHA_ENCRYPTION_KEY_HEX: 3333333333333333333333333333333333333333333333333333333333333333
+    volumes: ["dn3_data:/data", "./certs/generated/dn-3:/certs:ro"]
+
+  dn-4:
+    <<: *dn
+    hostname: dn-4
+    environment:
+      <<: *common-env
+      DFSHA_NODE_ID: dn-4
+      DFSHA_PUBLIC_URL: https://dn-4:9443
+      DFSHA_ZONE: zone-a
+      DFSHA_DATA_DIR: /data
+      DFSHA_ENCRYPTION_KEY_HEX: 4444444444444444444444444444444444444444444444444444444444444444
+    volumes: ["dn4_data:/data", "./certs/generated/dn-4:/certs:ro"]
+
+  client:
+    <<: *common
+    profiles: ["tools"]
+    command: ["sleep", "infinity"]
+    environment:
+      <<: *common-env
+      DFSHA_MDS_URLS: https://mds-1:8443,https://mds-2:8443,https://mds-3:8443
+      DFSHA_USER: ${DFSHA_BOOTSTRAP_USER:-demo}
+      DFSHA_PASSWORD: ${DFSHA_BOOTSTRAP_PASSWORD:-demo-change-me}
+    volumes:
+      - ./certs/generated/client:/certs:ro
+      - ./shared:/shared
+
+networks:
+  dfsha_net:
+    driver: bridge
+
+volumes:
+  mds1_data:
+  mds2_data:
+  mds3_data:
+  dn1_data:
+  dn2_data:
+  dn3_data:
+  dn4_data:
+
