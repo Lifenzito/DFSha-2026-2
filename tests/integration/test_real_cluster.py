@@ -8,6 +8,8 @@ import subprocess
 import sys
 import time
 import statistics
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -51,13 +53,17 @@ class Cluster:
 
 
 def start_service(module: str, port: int, env: dict[str, str], data_dir: Path) -> Service:
-    url = f"http://127.0.0.1:{port}"
+    tls = env.get("DFSHA_TLS_ENABLED") == "true"
+    url = f"{'https' if tls else 'http'}://127.0.0.1:{port}"
     process_env = os.environ.copy()
     process_env.update(env)
     process_env["DFSHA_DATA_DIR"] = str(data_dir)
     process_env["PYTHONPATH"] = str(Path(__file__).resolve().parents[2] / "src")
+    args = [sys.executable, "-m", "uvicorn", f"dfsha.{module}:app", "--host", "127.0.0.1", "--port", str(port), "--log-level", "warning"]
+    if tls:
+        args.extend(["--ssl-certfile", env["DFSHA_TLS_CERT"], "--ssl-keyfile", env["DFSHA_TLS_KEY"]])
     process = subprocess.Popen(
-        [sys.executable, "-m", "uvicorn", f"dfsha.{module}:app", "--host", "127.0.0.1", "--port", str(port), "--log-level", "warning"],
+        args,
         env=process_env,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
@@ -65,13 +71,13 @@ def start_service(module: str, port: int, env: dict[str, str], data_dir: Path) -
     return Service(url=url, process=process, data_dir=data_dir)
 
 
-def wait_health(services: list[Service], timeout_s: float = 15.0) -> None:
+def wait_health(services: list[Service], timeout_s: float = 15.0, verify: str | bool = False) -> None:
     deadline = time.monotonic() + timeout_s
     pending = set(service.url for service in services)
     while pending and time.monotonic() < deadline:
         for url in list(pending):
             try:
-                if httpx.get(f"{url}/health", timeout=0.5).status_code == 200:
+                if httpx.get(f"{url}/health", timeout=0.5, verify=verify).status_code == 200:
                     pending.remove(url)
             except httpx.HTTPError:
                 pass
@@ -80,12 +86,21 @@ def wait_health(services: list[Service], timeout_s: float = 15.0) -> None:
 
 
 @pytest.fixture()
-def real_cluster(tmp_path: Path) -> Cluster:
+def real_cluster(tmp_path: Path, request) -> Cluster:
+    tls = bool(getattr(request, "param", False))
+    tls_env: dict[str, str] = {}
+    cert_root = tmp_path / "certs"
+    verify: str | bool = False
+    if tls:
+        subprocess.run([sys.executable, str(Path(__file__).resolve().parents[2] / "scripts/generate_certs.py"), "--output", str(cert_root)], check=True, stdout=subprocess.DEVNULL)
+        verify = str(cert_root / "client/ca.crt")
+        tls_env = {"DFSHA_TLS_ENABLED": "true", "DFSHA_TLS_CA": verify, "DFSHA_TLS_CERT": str(cert_root / "mds-1/server.crt"), "DFSHA_TLS_KEY": str(cert_root / "mds-1/server.key")}
+    scheme = "https" if tls else "http"
     internal_secret = "integration-internal-secret"
     block_secret = "integration-block-secret"
     jwt_secret = "integration-jwt-secret"
     dn_ports = [free_port() for _ in range(4)]
-    dn_urls = [f"http://127.0.0.1:{port}" for port in dn_ports]
+    dn_urls = [f"{scheme}://127.0.0.1:{port}" for port in dn_ports]
     dns: list[Service] = []
     for index, (port, url) in enumerate(zip(dn_ports, dn_urls), start=1):
         dns.append(
@@ -93,6 +108,7 @@ def real_cluster(tmp_path: Path) -> Cluster:
                 "datanode_app",
                 port,
                 {
+                    **tls_env,
                     "DFSHA_NODE_ID": f"dn-{index}",
                     "DFSHA_PUBLIC_URL": url,
                     "DFSHA_ZONE": f"zone-{index}",
@@ -104,10 +120,10 @@ def real_cluster(tmp_path: Path) -> Cluster:
                 tmp_path / f"dn-{index}",
             )
         )
-    wait_health(dns)
+    wait_health(dns, verify=verify)
 
     mds_ports = [free_port() for _ in range(3)]
-    mds_urls = [f"http://127.0.0.1:{port}" for port in mds_ports]
+    mds_urls = [f"{scheme}://127.0.0.1:{port}" for port in mds_ports]
     mds: list[Service] = []
     for index, (port, url) in enumerate(zip(mds_ports, mds_urls), start=1):
         peers = ",".join(value for value in mds_urls if value != url)
@@ -116,6 +132,7 @@ def real_cluster(tmp_path: Path) -> Cluster:
                 "mds_app",
                 port,
                 {
+                    **tls_env,
                     "DFSHA_NODE_ID": f"mds-{index}",
                     "DFSHA_PUBLIC_URL": url,
                     "DFSHA_MDS_PEERS": peers,
@@ -136,10 +153,10 @@ def real_cluster(tmp_path: Path) -> Cluster:
                 tmp_path / f"mds-{index}",
             )
         )
-    wait_health(mds)
+    wait_health(mds, verify=verify)
     cluster = Cluster(mds=mds, dns=dns, internal_secret=internal_secret)
     try:
-        DFShaClient(mds_urls, timeout_s=1.0).discover_leader(10)
+        DFShaClient(mds_urls, timeout_s=1.0, verify=verify).discover_leader(10)
         yield cluster
     finally:
         cluster.stop()
@@ -250,4 +267,81 @@ def test_performance_two_file_sizes(real_cluster: Cluster) -> None:
             }
         )
     print("PERF_RESULT=" + json.dumps(results, sort_keys=True))
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("real_cluster", [True], indirect=True)
+def test_tls_interrupted_upload_snapshot_corruption_and_degraded_write(real_cluster: Cluster, tmp_path: Path) -> None:
+    ca = str(tmp_path / "certs/client/ca.crt")
+    urls = [service.url for service in real_cluster.mds]
+    client = DFShaClient(urls, verify=ca, timeout_s=2)
+    client.login("demo", "demo-change-me")
+    with pytest.raises(httpx.ConnectError):
+        httpx.get(urls[0] + "/health", verify=True, timeout=2)
+    with pytest.raises(DFShaClientError):
+        DFShaClient(urls, verify=ca).login("demo", "wrong-password")
+    client.mkdir("/secure")
+    assert client.cd("/secure") == "/secure"
+    original = os.urandom(256 * 1024)
+    client.put_bytes(original, "/secure/file")
+    snapshot = client.open_read("/secure/file")
+    session = client.open_write("/secure/file", truncate=True)
+    allocation = client._request("POST", "/v1/files/allocate", json={"handle": session["handle"], "epoch": session["lease"]["epoch"], "base_version": session["base_version"], "index":0}).json()
+    def interrupted_body():
+        yield b"incomplete"
+        raise RuntimeError("injected interrupted transfer")
+    with pytest.raises(RuntimeError):
+        httpx.put(allocation["pipeline"][0] + "/v1/blocks/" + allocation["block_id"], content=interrupted_body(), headers={"X-DFSha-Token":allocation["token"]}, verify=ca, timeout=3)
+    assert client.get_bytes("/secure/file") == original
+    with pytest.raises(DFShaClientError) as rejected:
+        client._request("POST", "/v1/files/commit", json={"handle":session["handle"],"epoch":session["lease"]["epoch"],"base_version":session["base_version"],"size":10,"sha256":hashlib.sha256(b"incomplete").hexdigest(),"blocks":[{"index":0,"block_id":allocation["block_id"],"generation":allocation["generation"],"length":10,"sha256":hashlib.sha256(b"incomplete").hexdigest(),"replicas":allocation["pipeline"]}]})
+    assert rejected.value.code == "INSUFFICIENT_REPLICAS"
+    client.close(session)
+    client.append("/secure/file", b"committed")
+    assert b"".join(client._read_block(block) for block in snapshot["snapshot"]["blocks"]) == original
+    client.close(snapshot)
+    manifest = client.open_read("/secure/file")["snapshot"]
+    first = manifest["blocks"][0]
+    node = next(service for service in real_cluster.dns if service.url == first["replicas"][0])
+    block = next(node.data_dir.rglob(first["block_id"] + ".*.blk"))
+    raw = block.read_bytes()
+    block.write_bytes(raw[:-1] + bytes([raw[-1] ^ 1]))
+    assert client.get_bytes("/secure/file") == original + b"committed"
+    node.stop()
+    client.put_bytes(b"new version with a disconnected replica", "/secure/file")
+    assert client.get_bytes("/secure/file") == b"new version with a disconnected replica"
+    assert all(node.url not in b["replicas"] for b in client.open_read("/secure/file")["snapshot"]["blocks"])
+    client.rm("/secure/file")
+    client.cd("/")
+    client.rmdir("/secure")
+    assert client.ls("/") == []
+
+
+@pytest.mark.integration
+def test_append_holds_lease_before_reading_to_prevent_lost_update(real_cluster: Cluster) -> None:
+    urls = [service.url for service in real_cluster.mds]
+    first, second = DFShaClient(urls), DFShaClient(urls)
+    for client in (first, second):
+        client.login("demo", "demo-change-me")
+    first.put_bytes(b"base", "/race")
+    entered, release = threading.Event(), threading.Event()
+    actual_read = first.get_bytes
+    def delayed_read(path):
+        content = actual_read(path)
+        entered.set()
+        assert release.wait(5)
+        return content
+    first.get_bytes = delayed_read
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        pending = executor.submit(first.append, "/race", b"-A")
+        try:
+            assert entered.wait(5)
+            with pytest.raises(DFShaClientError) as locked:
+                second.append("/race", b"-B")
+            assert locked.value.code == "LOCKED"
+        finally:
+            release.set()
+        pending.result()
+    second.append("/race", b"-B")
+    assert second.get_bytes("/race") == b"base-A-B"
 

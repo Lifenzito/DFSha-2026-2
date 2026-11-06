@@ -322,17 +322,14 @@ class DFShaClient:
         return self.get_bytes(remote_path)[offset : offset + length]
 
     def write(self, remote_path: str, offset: int, data: bytes, *, create: bool = False) -> dict[str, Any]:
-        try:
-            existing = self.get_bytes(remote_path)
-        except DFShaClientError as exc:
-            if not create or exc.code != "NOT_FOUND":
-                raise
-            existing = b""
-        if offset < 0 or offset > len(existing):
-            raise DFShaClientError("INVALID_ARGUMENT", "no se admiten huecos más allá de EOF")
-        updated = existing[:offset] + data + existing[offset + len(data) :]
         session = self.open_write(remote_path, create=create, truncate=False)
         try:
+            # Read only after acquiring the lease: reading before it can overwrite
+            # a writer that commits between our read and open_write.
+            existing = self.get_bytes(remote_path) if session["existing"] else b""
+            if offset < 0 or offset > len(existing):
+                raise DFShaClientError("INVALID_ARGUMENT", "no se admiten huecos más allá de EOF")
+            updated = existing[:offset] + data + existing[offset + len(data) :]
             return self._upload_content(updated, session, reuse_blocks=session.get("snapshot", {}).get("blocks"))
         except Exception:
             try:
@@ -342,9 +339,9 @@ class DFShaClient:
             raise
 
     def append(self, remote_path: str, data: bytes) -> dict[str, Any]:
-        existing = self.get_bytes(remote_path)
         session = self.open_write(remote_path, create=False, truncate=False)
         try:
+            existing = self.get_bytes(remote_path)
             return self._upload_content(
                 existing + data,
                 session,

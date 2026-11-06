@@ -23,3 +23,29 @@ jobs:
           name: pytest-results
           path: evidence/pytest-ci.xml
 
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install cryptography==44.0.1
+      - run: python scripts/init_environment.py
+      - run: python scripts/generate_certs.py
+      - run: docker compose up --build -d
+      - name: Esperar servicios y ejecutar validación TLS
+        run: |
+          mkdir -p evidence/docker
+          docker compose --profile tools run --rm -v "$PWD/scripts:/checks:ro" -v "$PWD/evidence/docker:/evidence" client python /checks/verify_deployment.py baseline --output /evidence/baseline.json
+      - name: Evidencia Docker
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-results
+          path: evidence/docker/
+      - name: Detener contenedores
+        if: always()
+        run: docker compose down
+

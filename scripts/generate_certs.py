@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 import ipaddress
+import argparse
 from pathlib import Path
 
 from cryptography import x509
@@ -25,6 +26,12 @@ def write_key(path: Path, key: rsa.RSAPrivateKey) -> None:
 
 
 def main() -> None:
+    global ROOT
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output", type=Path, default=ROOT)
+    parser.add_argument("--ip", action="append", default=[], help="Additional private IP SAN, repeatable")
+    args = parser.parse_args()
+    ROOT = args.output.resolve()
     ROOT.mkdir(parents=True, exist_ok=True)
     ca_key = rsa.generate_private_key(public_exponent=65537, key_size=3072)
     subject = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "DFSha Development CA")])
@@ -47,6 +54,7 @@ def main() -> None:
         cert_subject = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, name)])
         san = x509.SubjectAlternativeName(
             [x509.DNSName(name), x509.DNSName("localhost"), x509.IPAddress(ipaddress.ip_address("127.0.0.1"))]
+            + [x509.IPAddress(ipaddress.ip_address(value)) for value in args.ip]
         )
         eku = [ExtendedKeyUsageOID.CLIENT_AUTH] if name == "client" else [ExtendedKeyUsageOID.SERVER_AUTH]
         cert = (

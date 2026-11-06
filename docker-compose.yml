@@ -5,9 +5,9 @@ x-common: &common
   environment: &common-env
     DFSHA_TLS_ENABLED: "true"
     DFSHA_TLS_CA: /certs/ca.crt
-    DFSHA_JWT_SECRET: ${DFSHA_JWT_SECRET:-development-jwt-secret-change-me}
-    DFSHA_BLOCK_TOKEN_SECRET: ${DFSHA_BLOCK_TOKEN_SECRET:-development-block-secret-change-me}
-    DFSHA_INTERNAL_SECRET: ${DFSHA_INTERNAL_SECRET:-development-internal-secret-change-me}
+    DFSHA_JWT_SECRET: ${DFSHA_JWT_SECRET:?Run scripts/init_environment.py}
+    DFSHA_BLOCK_TOKEN_SECRET: ${DFSHA_BLOCK_TOKEN_SECRET:?Run scripts/init_environment.py}
+    DFSHA_INTERNAL_SECRET: ${DFSHA_INTERNAL_SECRET:?Run scripts/init_environment.py}
 
 x-mds: &mds
   <<: *common
@@ -21,7 +21,8 @@ x-mds: &mds
     DFSHA_REPLICATION_FACTOR: "3"
     DFSHA_MIN_REPLICAS: "2"
     DFSHA_BOOTSTRAP_USER: ${DFSHA_BOOTSTRAP_USER:-demo}
-    DFSHA_BOOTSTRAP_PASSWORD: ${DFSHA_BOOTSTRAP_PASSWORD:-demo-change-me}
+    DFSHA_BOOTSTRAP_PASSWORD: ${DFSHA_BOOTSTRAP_PASSWORD:?Run scripts/init_environment.py}
+    DFSHA_LEASE_TTL_S: "300"
 
 x-dn: &dn
   <<: *common
@@ -87,7 +88,7 @@ services:
       DFSHA_PUBLIC_URL: https://dn-1:9443
       DFSHA_ZONE: zone-a
       DFSHA_DATA_DIR: /data
-      DFSHA_ENCRYPTION_KEY_HEX: 1111111111111111111111111111111111111111111111111111111111111111
+      DFSHA_ENCRYPTION_KEY_HEX: ${DFSHA_DN1_KEY_HEX:?Run scripts/init_environment.py}
     volumes: ["dn1_data:/data", "./certs/generated/dn-1:/certs:ro"]
 
   dn-2:
@@ -99,7 +100,7 @@ services:
       DFSHA_PUBLIC_URL: https://dn-2:9443
       DFSHA_ZONE: zone-b
       DFSHA_DATA_DIR: /data
-      DFSHA_ENCRYPTION_KEY_HEX: 2222222222222222222222222222222222222222222222222222222222222222
+      DFSHA_ENCRYPTION_KEY_HEX: ${DFSHA_DN2_KEY_HEX:?Run scripts/init_environment.py}
     volumes: ["dn2_data:/data", "./certs/generated/dn-2:/certs:ro"]
 
   dn-3:
@@ -111,7 +112,7 @@ services:
       DFSHA_PUBLIC_URL: https://dn-3:9443
       DFSHA_ZONE: zone-c
       DFSHA_DATA_DIR: /data
-      DFSHA_ENCRYPTION_KEY_HEX: 3333333333333333333333333333333333333333333333333333333333333333
+      DFSHA_ENCRYPTION_KEY_HEX: ${DFSHA_DN3_KEY_HEX:?Run scripts/init_environment.py}
     volumes: ["dn3_data:/data", "./certs/generated/dn-3:/certs:ro"]
 
   dn-4:
@@ -123,7 +124,7 @@ services:
       DFSHA_PUBLIC_URL: https://dn-4:9443
       DFSHA_ZONE: zone-a
       DFSHA_DATA_DIR: /data
-      DFSHA_ENCRYPTION_KEY_HEX: 4444444444444444444444444444444444444444444444444444444444444444
+      DFSHA_ENCRYPTION_KEY_HEX: ${DFSHA_DN4_KEY_HEX:?Run scripts/init_environment.py}
     volumes: ["dn4_data:/data", "./certs/generated/dn-4:/certs:ro"]
 
   client:
@@ -134,7 +135,7 @@ services:
       <<: *common-env
       DFSHA_MDS_URLS: https://mds-1:8443,https://mds-2:8443,https://mds-3:8443
       DFSHA_USER: ${DFSHA_BOOTSTRAP_USER:-demo}
-      DFSHA_PASSWORD: ${DFSHA_BOOTSTRAP_PASSWORD:-demo-change-me}
+      DFSHA_PASSWORD: ${DFSHA_BOOTSTRAP_PASSWORD:?Run scripts/init_environment.py}
     volumes:
       - ./certs/generated/client:/certs:ro
       - ./shared:/shared
