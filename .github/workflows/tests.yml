@@ -16,4 +16,10 @@ jobs:
           cache: pip
       - run: python -m pip install -r requirements-dev.txt
       - run: python -m pytest -q --junitxml=evidence/pytest-ci.xml
+      - name: Conservar evidencia de las pruebas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-results
+          path: evidence/pytest-ci.xml
 
